@@ -74,14 +74,6 @@ async function main() {
     console.debug(`pid: ${process.pid}`)
   })
 
-  function onClose() {
-    console.debug('graceful shutdown started')
-    server.close(() => {
-      console.debug('graceful shutdown complete')
-      process.exit(1)
-    })
-  }
-
 }
 
 main().catch((err) => {
