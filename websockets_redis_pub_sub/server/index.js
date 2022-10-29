@@ -1,8 +1,6 @@
 //@ts-check
 require('dotenv').config()
 
-const express = require('express')
-const cors = require('cors')
 const redis = require('redis')
 const http = require('http')
 const { WebSocketServer } = require('ws')
@@ -51,19 +49,12 @@ async function setupWebsocketsOverRedis(server, REDIS_URI) {
 
 async function main() {
 
-  const NODE_ENV = process.env.NODE_ENV;
-  const PORT = process.env.PORT
-  const REDIS_URI = process.env.REDIS_URI
+  const NODE_ENV = process.env.NODE_ENV || "development";
+  const PORT = process.env.PORT || "8080";
+  const REDIS_URI = process.env.REDIS_URI || "redis://localhost:6379"
 
 
-  const app = express()
-  app.use(express.json())
-  app.use(express.urlencoded({
-    extended: false
-  }))
-  app.use(cors())
-
-  const server = http.createServer(app)
+  const server = http.createServer()
 
   await setupWebsocketsOverRedis(server, REDIS_URI)
 
