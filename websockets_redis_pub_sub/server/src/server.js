@@ -3,7 +3,9 @@ require('dotenv').config()
 require('./setup/index')()
 
 const config = require('config')
+const redis = require('redis')
 const http = require('http')
+const { WebSocketServer } = require('ws')
 
 const makeApp = require('./makeApp')
 const healthController = require('./controllers/healthController')
@@ -14,11 +16,51 @@ async function main() {
 
   const NODE_ENV = config.get('env.NODE_ENV');
   const PORT = config.get('application.port')
-  
+  const REDIS_URI = config.get("redis.uri")
+
+  const client = redis.createClient({
+    url: REDIS_URI
+  })
+  const publisher = redis.createClient({
+    url: REDIS_URI
+  })
+  await client.connect()
+  await publisher.connect()
+  const subscriber = client.duplicate()
+  await subscriber.connect()
+
+  logger.info("connected to redis")
+
   const app = makeApp({
     controllers: [healthController, exampleController],
   })
   const server = http.createServer(app)
+  const wss = new WebSocketServer({ server: server })
+
+
+  // when a message is received from redis publish it to all connected clients
+  subscriber.subscribe("new_message", (message) => {
+    console.log("message received from redis")
+    console.log(message)
+    wss.clients.forEach(ws => {
+      console.log('message sent to socket')
+      console.log(message)
+      ws.send(message)
+    })
+  })
+
+  // when message is received from websocket publish it to redis
+  wss.addListener("connection", (ws) => {
+    console.log('new connection added')
+    ws.addEventListener('message', (msg) => {
+      console.log("message received from websocket")
+      console.log(msg.data.toString())
+      publisher.publish("new_message", msg.data.toString()).then((res) => {
+        console.log("message sent to redis")
+        console.log(msg.data.toString())
+      })
+    })
+  })
 
   server.listen(PORT, () => {
     logger.info(
@@ -29,6 +71,9 @@ async function main() {
 
   function onClose() {
     logger.debug('graceful shutdown started')
+    wss.clients.forEach(socket => {
+      socket.close()
+    })
     server.close(() => {
       logger.debug('graceful shutdown complete')
       process.exit(1)

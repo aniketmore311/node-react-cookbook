@@ -9,4 +9,7 @@ module.exports = {
   env: {
     NODE_ENV: process.env.NODE_ENV || 'development',
   },
+  redis:{
+    uri: process.env.DEFAULT_REDIS_URI
+  }
 }
