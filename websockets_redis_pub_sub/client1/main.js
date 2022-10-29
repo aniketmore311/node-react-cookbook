@@ -17,14 +17,6 @@ ws.addEventListener("message", (event) => {
 
 
 let messages = [
-    {
-        sender: "iron man",
-        message: "hello word"
-    },
-    {
-        sender: "spider man",
-        message: "hello iron man"
-    }
 ]
 
 function renderMessages() {

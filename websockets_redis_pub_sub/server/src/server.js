@@ -12,12 +12,8 @@ const healthController = require('./controllers/healthController')
 const exampleController = require('./controllers/exampleController')
 const logger = require('./setup/logger')
 
-async function main() {
-
-  const NODE_ENV = config.get('env.NODE_ENV');
-  const PORT = config.get('application.port')
-  const REDIS_URI = config.get("redis.uri")
-
+//@ts-ignore
+async function setupWebsocketsOverRedis(server, REDIS_URI) {
   const client = redis.createClient({
     url: REDIS_URI
   })
@@ -31,12 +27,7 @@ async function main() {
 
   logger.info("connected to redis")
 
-  const app = makeApp({
-    controllers: [healthController, exampleController],
-  })
-  const server = http.createServer(app)
   const wss = new WebSocketServer({ server: server })
-
 
   // when a message is received from redis publish it to all connected clients
   subscriber.subscribe("new_message", (message) => {
@@ -62,6 +53,23 @@ async function main() {
     })
   })
 
+}
+
+async function main() {
+
+  const NODE_ENV = config.get('env.NODE_ENV');
+  const PORT = config.get('application.port')
+  const REDIS_URI = config.get("redis.uri")
+
+
+  const app = makeApp({
+    controllers: [healthController, exampleController],
+  })
+
+  const server = http.createServer(app)
+
+  await setupWebsocketsOverRedis(server, REDIS_URI)
+
   server.listen(PORT, () => {
     logger.info(
       `server(mode: ${NODE_ENV}) started on: http://localhost:${PORT}`
@@ -71,9 +79,6 @@ async function main() {
 
   function onClose() {
     logger.debug('graceful shutdown started')
-    wss.clients.forEach(socket => {
-      socket.close()
-    })
     server.close(() => {
       logger.debug('graceful shutdown complete')
       process.exit(1)
