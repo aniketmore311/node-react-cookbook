@@ -1,18 +1,12 @@
+//@ts-check
 require('dotenv').config()
-//setup
-require('./setup/index')()
 
-const config = require('config')
+const express = require('express')
+const cors = require('cors')
 const redis = require('redis')
 const http = require('http')
 const { WebSocketServer } = require('ws')
 
-const makeApp = require('./makeApp')
-const healthController = require('./controllers/healthController')
-const exampleController = require('./controllers/exampleController')
-const logger = require('./setup/logger')
-
-//@ts-ignore
 async function setupWebsocketsOverRedis(server, REDIS_URI) {
   const client = redis.createClient({
     url: REDIS_URI
@@ -25,7 +19,7 @@ async function setupWebsocketsOverRedis(server, REDIS_URI) {
   const subscriber = client.duplicate()
   await subscriber.connect()
 
-  logger.info("connected to redis")
+  console.info("connected to redis")
 
   const wss = new WebSocketServer({ server: server })
 
@@ -57,41 +51,37 @@ async function setupWebsocketsOverRedis(server, REDIS_URI) {
 
 async function main() {
 
-  const NODE_ENV = config.get('env.NODE_ENV');
-  const PORT = config.get('application.port')
-  const REDIS_URI = config.get("redis.uri")
+  const NODE_ENV = process.env.NODE_ENV;
+  const PORT = process.env.PORT
+  const REDIS_URI = process.env.REDIS_URI
 
 
-  const app = makeApp({
-    controllers: [healthController, exampleController],
-  })
+  const app = express()
+  app.use(express.json())
+  app.use(express.urlencoded({
+    extended: false
+  }))
+  app.use(cors())
 
   const server = http.createServer(app)
 
   await setupWebsocketsOverRedis(server, REDIS_URI)
 
   server.listen(PORT, () => {
-    logger.info(
+    console.info(
       `server(mode: ${NODE_ENV}) started on: http://localhost:${PORT}`
     )
-    logger.debug(`pid: ${process.pid}`)
+    console.debug(`pid: ${process.pid}`)
   })
 
   function onClose() {
-    logger.debug('graceful shutdown started')
+    console.debug('graceful shutdown started')
     server.close(() => {
-      logger.debug('graceful shutdown complete')
+      console.debug('graceful shutdown complete')
       process.exit(1)
     })
   }
 
-  process.on('SIGINT', onClose)
-  process.on('SIGTERM', onClose)
-
-  process.on("unhandledRejection", function (err) {
-    console.error(err)
-    process.exit(1)
-  })
 }
 
 main().catch((err) => {

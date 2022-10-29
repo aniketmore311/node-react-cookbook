@@ -1,0 +1,17 @@
+{
+  "name": "client1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start":"npm run serve",
+    "serve":"serve public -p 3000"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "serve": "^14.0.1"
+  }
+}
