@@ -22,26 +22,51 @@ async function setupWebsocketsOverRedis(server, REDIS_URI) {
   const wss = new WebSocketServer({ server: server })
 
   // when a message is received from redis publish it to all connected clients
-  subscriber.subscribe("new_message", (message) => {
-    console.log("message received from redis")
-    console.log(message)
+  subscriber.subscribe("new_message", (payloadStr) => {
+    console.log("--- received ---")
+    console.log("source: redis, type: new_message")
+    console.log("payload: ")
+    console.log(payloadStr)
+    let wsEvent = {
+      type: "new_message",
+      payload: JSON.parse(payloadStr)
+    }
     wss.clients.forEach(ws => {
-      console.log('message sent to socket')
-      console.log(message)
-      ws.send(message)
+      ws.send(JSON.stringify(wsEvent), (err) => {
+        console.log("--- sent ---")
+        console.log("destination: websocket, type: new_message")
+        console.log("payload: ")
+        console.log(wsEvent.payload)
+      })
     })
   })
 
   // when message is received from websocket publish it to redis
   wss.addListener("connection", (ws) => {
     console.log('new connection added')
-    ws.addEventListener('message', (msg) => {
-      console.log("message received from websocket")
-      console.log(msg.data.toString())
-      publisher.publish("new_message", msg.data.toString()).then((res) => {
-        console.log("message sent to redis")
-        console.log(msg.data.toString())
-      })
+    ws.addEventListener('message', (event) => {
+      let eventObj = JSON.parse(event.data.toString())
+      //@ts-ignore
+      switch (eventObj.type) {
+        case "new_message":
+          console.log("--- received ---")
+          console.log("source: websocket, type: new_message")
+          console.log("payload: ")
+          //@ts-ignore
+          console.log(eventObj.payload)
+          //@ts-ignore
+          let redisPayload = eventObj.payload
+          publisher.publish("new_message", JSON.stringify(redisPayload)).then((res) => {
+            console.log("--- sent ---")
+            console.log("destination: redis, type: new_message")
+            console.log("payload: ")
+            console.log(redisPayload)
+          })
+          break;
+
+        default:
+          break;
+      }
     })
   })
 

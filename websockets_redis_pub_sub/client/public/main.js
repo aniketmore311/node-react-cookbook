@@ -1,23 +1,32 @@
 let clientname = prompt("enter client name")
 let wsURL = prompt("enter websocket url")
 
+let messages = [
+]
+renderMessages()
+
 let ws = new WebSocket(wsURL)
 
 ws.addEventListener("open", () => {
-    console.log("connection established")
+    console.log(`connection established with: ${wsURL}`)
 })
 
 ws.addEventListener("message", (event) => {
-    console.log("message received")
-    console.log(event.data)
-    let msg = JSON.parse(event.data)
-    messages.push(msg.payload)
-    renderMessages()
+    eventObj = JSON.parse(event.data.toString())
+    switch (eventObj.type) {
+        case "new_message":
+            let payload = eventObj.payload
+            console.log("new_message event sent with payload")
+            console.log(payload)
+            messages.push(payload)
+            renderMessages()
+            break;
+        default:
+            break;
+    }
 })
 
 
-let messages = [
-]
 
 function renderMessages() {
 
@@ -29,7 +38,7 @@ function renderMessages() {
     messages.forEach(message => {
         html += `
         <div>
-            <p>${message.sender}: ${message.message}</p>
+            <p>${message.from}: ${message.message}</p>
             <p>------</p>
         </div>
         `
@@ -42,17 +51,19 @@ renderMessages()
 
 function sendMessage() {
     let msgStr = document.getElementById("message").value
-    let msg = JSON.stringify(
-        {
-            event: "new_message", payload: {
-                sender: clientname,
-                message: msgStr
-            }
+    let event = {
+        type: "new_message",
+        payload: {
+            from: clientname,
+            message: msgStr
         }
+    }
+    let eventStr = JSON.stringify(
+        event
     )
-    console.log("message sent")
-    console.log(msgStr)
+    console.log("new_message event sent with payload")
+    console.log(event.payload)
     ws.send(
-        msg
+        eventStr
     )
 }
