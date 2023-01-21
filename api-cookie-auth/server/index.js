@@ -24,6 +24,10 @@ const user = {
 };
 
 app.post("/login", (req, res) => {
+  const cookie = req.headers.cookie;
+  console.log(cookie);
+  console.log(req.cookies);
+
   const { username, password } = req.body;
   if (!username || !password) {
     res.status(400).send("bad_request");
