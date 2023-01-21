@@ -44,7 +44,8 @@ app.post("/login", (req, res) => {
 });
 
 app.get("/profile", (req, res) => {
-  //   console.log(req.haders);
+  const cookie = req.headers.cookie;
+  console.log(cookie);
   console.log(req.cookies);
   res.send(JSON.stringify(user));
 });
