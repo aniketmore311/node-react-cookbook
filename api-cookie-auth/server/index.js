@@ -23,11 +23,14 @@ const user = {
   password: "password",
 };
 
-app.post("/login", (req, res) => {
-  const cookie = req.headers.cookie;
-  console.log(cookie);
+app.use((req, res, next) => {
+  console.log("in middleware");
+  console.log(req.headers.cookie);
   console.log(req.cookies);
+  next();
+});
 
+app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
     res.status(400).send("bad_request");
@@ -48,9 +51,6 @@ app.post("/login", (req, res) => {
 });
 
 app.get("/profile", (req, res) => {
-  const cookie = req.headers.cookie;
-  console.log(cookie);
-  console.log(req.cookies);
   res.send(JSON.stringify(user));
 });
 
