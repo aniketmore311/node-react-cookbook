@@ -40,7 +40,7 @@ app.post("/login", (req, res) => {
     res
       .cookie("auth_token", "abcd", {
         httpOnly: true,
-        sameSite: true,
+        secure: false,
       })
       .send("login successful");
     return;
