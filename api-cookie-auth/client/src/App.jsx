@@ -61,8 +61,10 @@ function App() {
       <br />
       <button
         onClick={async () => {
-          const resp = await axios.get("http://localhost:8080/profile");
-          console.log(resp.data)
+          const resp = await axios.get("http://localhost:8080/profile", {
+            withCredentials: true,
+          });
+          console.log(resp.data);
         }}
       >
         get profile
