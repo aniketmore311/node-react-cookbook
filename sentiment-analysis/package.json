@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@aws-sdk/client-comprehend": "^3.259.0",
+    "dotenv": "^16.0.3"
+  }
+}
