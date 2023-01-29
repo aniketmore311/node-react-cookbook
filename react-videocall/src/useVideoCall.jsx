@@ -1,17 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import Peer from "peerjs";
 
-function useVideoCall({ onPeerError, onCallError }) {
+function useVideoCall({
+  onPeerError,
+  onCallError,
+  onDataReceived,
+  onDataError,
+}) {
   const [peer, setPeer] = useState(null);
   const [peerId, setPeerId] = useState("");
   const [localStream, setLocalStream] = useState(null);
   const localVideoRef = useRef();
 
   const [remoteStream, setRemoteStream] = useState(null);
+  const [remoteDataConn, setRemoteDataConn] = useState(null);
   const [call, setCall] = useState();
   const remoteVideoRef = useRef();
 
   const onCallReceiveRef = useRef();
+  const onDataConnReceiveRef = useRef();
 
   //received call
   onCallReceiveRef.current = (call) => {
@@ -43,6 +50,25 @@ function useVideoCall({ onPeerError, onCallError }) {
       console.error("local stream is not defined");
     }
   };
+  //when other user initializes data connection
+  onDataConnReceiveRef.current = (dataConn) => {
+    setRemoteDataConn(dataConn);
+    dataConn.on("data", (data) => {
+      console.trace("data received");
+      onDataReceived(data);
+    });
+    dataConn.on("open", () => {
+      console.trace("data conn open");
+    });
+    dataConn.on("close", () => {
+      console.trace("data connection closed");
+      setRemoteDataConn(null);
+    });
+    dataConn.on("error", (err) => {
+      console.trace("data conn error");
+      onDataError(err);
+    });
+  };
 
   const initiate = (peerId) => {
     const peerInstance = new Peer(peerId);
@@ -54,6 +80,7 @@ function useVideoCall({ onPeerError, onCallError }) {
 
     peerInstance.on("connection", (dataConnection) => {
       console.trace("data connection received");
+      onDataConnReceiveRef.current(dataConnection);
     });
 
     //when call is received
@@ -78,13 +105,19 @@ function useVideoCall({ onPeerError, onCallError }) {
 
   const cleanup = () => {
     endStream();
+    if (remoteDataConn) {
+      remoteDataConn.close();
+      setRemoteDataConn(null);
+    }
     if (call) {
       call.close();
+      setCall(null);
     }
     if (peer && !peer.destroyed) {
       peer.destroy();
+      setPeer(null);
+      setPeerId("");
     }
-    setPeerId("");
     setLocalStream(null);
     setRemoteStream(null);
   };
@@ -127,37 +160,44 @@ function useVideoCall({ onPeerError, onCallError }) {
   const endCall = () => {
     if (call) {
       call.close();
+      setCall(null);
+    }
+    if (remoteDataConn) {
+      remoteDataConn.close();
+      setRemoteDataConn(null);
     }
     setRemoteStream(null);
-    setCall(null);
   };
 
   //when call is made
   const startCall = (peerId) => {
     if (peer) {
       if (localStream) {
+        //obtain call and setup
         const call = peer.call(peerId, localStream);
         if (!call) {
           throw new Error("call not connected");
         }
-        setCall(call);
-        call.on("stream", (stream) => {
-          console.trace("stream received from call");
-          setRemoteStream(stream);
-        });
-        call.on("close", () => {
-          console.trace("call closed");
-          setRemoteStream(null);
-          setCall(null);
-        });
-        call.on("error", (err) => {
-          onCallError(err);
-        });
+        onCallReceiveRef.current(call);
+        //obtain dataConnection and setup
+        const dataConn = peer.connect(peerId);
+        if (!dataConn) {
+          throw new Error("data connection is not defined");
+        }
+        onDataConnReceiveRef.current(dataConn);
       } else {
         console.error("localStream is not defined");
       }
     } else {
       console.error("peer is not defined");
+    }
+  };
+
+  const sendData = (data) => {
+    if (remoteDataConn) {
+      remoteDataConn.send(data);
+    } else {
+      throw new Error("remote data connection not established");
     }
   };
 
@@ -172,6 +212,7 @@ function useVideoCall({ onPeerError, onCallError }) {
     startStream,
     endStream,
     startCall,
+    sendData,
     endCall,
   };
 }

@@ -11,6 +11,15 @@ function useMyVideoCall() {
       console.log("error from peer");
       console.error(err);
     },
+    onDataError: (err) => {
+      console.log("data error occured");
+      console.error(err);
+    },
+    onDataReceived: (data) => {
+      console.log("data received");
+      console.log(data);
+      console.log(typeof data);
+    },
   });
 }
 

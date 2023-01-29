@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import Peer from "peerjs";
 import useMyVideoCall from "./useMyVideoCall";
 
+const myPeerId = "aniketmore" + Math.floor(100 * Math.random());
+
 function VideoCall() {
   const {
     initiate,
@@ -15,11 +17,12 @@ function VideoCall() {
     remoteStream,
     remoteVideoRef,
     peerId,
+    sendData,
   } = useMyVideoCall();
   const [remotePeerId, setRemotePeerId] = useState("");
 
   useEffect(() => {
-    initiate("aniketmore" + Math.floor(100 * Math.random()));
+    initiate(myPeerId);
     return () => {
       cleanup();
     };
@@ -97,12 +100,22 @@ function VideoCall() {
           end call
         </button>
       )}
+      <br />
       <button
         onClick={() => {
           cleanup();
         }}
       >
         cleanup
+      </button>
+      <br />
+      <br />
+      <button
+        onClick={() => {
+          sendData("ping from " + myPeerId);
+        }}
+      >
+        ping
       </button>
     </div>
   );
