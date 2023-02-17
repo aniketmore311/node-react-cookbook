@@ -1,9 +1,6 @@
 //@ts-check
-const { getDiffieHellman } = require("crypto");
 const mongodb = require("mongodb");
 const { client } = require("./client");
-const fs = require("fs");
-const { Duplex } = require("stream");
 
 /**
  *
@@ -32,7 +29,6 @@ async function storeFile(stream, filename) {
  * @returns {import('mongodb').GridFSBucketReadStream}
  */
 function getFile(filename) {
-  const stream = new Duplex();
   const db = client.db("files");
   const bucket = new mongodb.GridFSBucket(db, {
     bucketName: "uploads_bucket",
